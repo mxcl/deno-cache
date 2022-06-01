@@ -18,14 +18,19 @@ async function protocolFile(url: URL, dest: string): Promise<Metadata> {
 }
 
 async function protocolHttp(url: URL, dest: string): Promise<Metadata> {
-  const download = await fetch(url);
+  let headers: { [key: string]: string } = {};
+  if (url.host == "api.github.com") {
+    const token = Deno.env.get("GITHUB_TOKEN")
+    if (token) headers['Authorization'] = `bearer ${token}`
+  }
+  const download = await fetch(url, { headers });
   if (!download.ok) {
     throw new CacheError(download.statusText);
   }
   const source = await download.arrayBuffer();
   await Deno.writeFile(dest, new Uint8Array(source));
 
-  const headers: { [key: string]: string } = {};
+  headers = {};
   for (const [key, value] of download.headers) {
     headers[key] = value;
   }
